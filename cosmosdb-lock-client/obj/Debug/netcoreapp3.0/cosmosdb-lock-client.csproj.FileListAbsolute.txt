@@ -1,0 +1,10 @@
+D:\source\repos\cosmosdb-lock-client\cosmosdb-lock-client\bin\Debug\netcoreapp3.0\cosmosdb-lock-client.deps.json
+D:\source\repos\cosmosdb-lock-client\cosmosdb-lock-client\bin\Debug\netcoreapp3.0\cosmosdb-lock-client.dll
+D:\source\repos\cosmosdb-lock-client\cosmosdb-lock-client\obj\Debug\netcoreapp3.0\cosmosdb-lock-client.csprojAssemblyReference.cache
+D:\source\repos\cosmosdb-lock-client\cosmosdb-lock-client\obj\Debug\netcoreapp3.0\cosmosdb-lock-client.AssemblyInfoInputs.cache
+D:\source\repos\cosmosdb-lock-client\cosmosdb-lock-client\obj\Debug\netcoreapp3.0\cosmosdb-lock-client.AssemblyInfo.cs
+D:\source\repos\cosmosdb-lock-client\cosmosdb-lock-client\bin\Debug\netcoreapp3.0\Microsoft.Azure.Cosmos.ServiceInterop.dll
+D:\source\repos\cosmosdb-lock-client\cosmosdb-lock-client\bin\Debug\netcoreapp3.0\Cosmos.CRTCompat.dll
+D:\source\repos\cosmosdb-lock-client\cosmosdb-lock-client\bin\Debug\netcoreapp3.0\cosmosdb-lock-client.pdb
+D:\source\repos\cosmosdb-lock-client\cosmosdb-lock-client\obj\Debug\netcoreapp3.0\cosmosdb-lock-client.dll
+D:\source\repos\cosmosdb-lock-client\cosmosdb-lock-client\obj\Debug\netcoreapp3.0\cosmosdb-lock-client.pdb
