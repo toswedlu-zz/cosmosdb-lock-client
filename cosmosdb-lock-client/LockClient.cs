@@ -15,10 +15,11 @@ namespace Microsoft.Azure.Cosmos
             _container = leaseContainer;
         }
 
-        public Lock Aquire(AcquireLockOptions options)
+        public Lock Acquire(AcquireLockOptions options)
         {
             if (string.IsNullOrWhiteSpace(options.PartitionKey)) throw new ArgumentException(string.Format(_argumentExceptionMessage, "PartitionKey"));
             if (string.IsNullOrWhiteSpace(options.LockName)) throw new ArgumentException(string.Format(_argumentExceptionMessage, "LockName"));
+            if (options.TimeoutMS < 0) throw new ArgumentException("TimeoutMS must be greater than zero.");
 
             bool done = false;
             DateTime now = DateTime.Now;
@@ -37,7 +38,7 @@ namespace Microsoft.Azure.Cosmos
                     throw;
                 }
 
-                if (options.TimeoutMS < 0 || (DateTime.Now - now).TotalMilliseconds < options.TimeoutMS)
+                if ((DateTime.Now - now).TotalMilliseconds < options.TimeoutMS)
                 {
                     Thread.Sleep(options.RetryWaitMS);
                 }
@@ -57,7 +58,7 @@ namespace Microsoft.Azure.Cosmos
 
         public void Release(Lock @lock)
         {
-            //_container.DeleteItemAsync(@lock.Name, @lock.PartitionKey);
+            
         }
 
         private Lock TryAcquireOnce(AcquireLockOptions options)
