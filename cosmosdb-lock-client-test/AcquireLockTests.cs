@@ -65,6 +65,23 @@ namespace cosmosdb_lock_client_test
         }
 
         [TestMethod]
+        public void IsAcquired()
+        {
+            AcquireLockOptions options = new AcquireLockOptions()
+            {
+                PartitionKey = "test-key",
+                LockName = "test-name",
+                LeaseDurationMS = 2000
+            };
+            MockContainer mockContainer = new MockContainer();
+            LockClient lockClient = new LockClient(mockContainer.Container);
+            Lock @lock = lockClient.Acquire(options);
+            Assert.IsTrue(@lock.IsAquired);
+            Thread.Sleep(options.LeaseDurationMS);
+            Assert.IsFalse(@lock.IsAquired);
+        }
+
+        [TestMethod]
         public void ParitionKeyHasValue()
         {
             AcquireLockOptions options = new AcquireLockOptions()

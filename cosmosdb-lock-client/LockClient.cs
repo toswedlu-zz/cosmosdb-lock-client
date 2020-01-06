@@ -22,7 +22,7 @@ namespace Microsoft.Azure.Cosmos
             if (options.TimeoutMS < 0) throw new ArgumentException("TimeoutMS must be greater than zero.");
 
             bool done = false;
-            DateTime now = DateTime.Now;
+            DateTime now = DateTime.UtcNow;
             while (!done)
             {
                 try
@@ -38,7 +38,7 @@ namespace Microsoft.Azure.Cosmos
                     throw;
                 }
 
-                if ((DateTime.Now - now).TotalMilliseconds < options.TimeoutMS)
+                if ((DateTime.UtcNow - now).TotalMilliseconds < options.TimeoutMS)
                 {
                     Thread.Sleep(options.RetryWaitMS);
                 }
@@ -84,6 +84,7 @@ namespace Microsoft.Azure.Cosmos
 
             try
             {
+                @lock.TimeAcquired = DateTime.UtcNow;
                 ItemResponse<Lock> response = _container.CreateItemAsync(@lock).Result;
                 @lock.ETag = response.ETag;
                 return @lock;
