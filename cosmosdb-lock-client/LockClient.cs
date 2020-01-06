@@ -58,7 +58,19 @@ namespace Microsoft.Azure.Cosmos
 
         public void Release(Lock @lock)
         {
-            
+            try
+            {
+                ItemRequestOptions options = new ItemRequestOptions() { IfMatchEtag = @lock.ETag };
+                _container.DeleteItemAsync<Lock>(@lock.Name, new PartitionKey(@lock.PartitionKey), options).Wait();
+            }
+            catch (AggregateException ex)
+            {
+                CosmosException innerEx = ex.InnerException as CosmosException;
+                if (innerEx == null || innerEx.StatusCode != HttpStatusCode.PreconditionFailed)
+                {
+                    throw;
+                }
+            }
         }
 
         private Lock TryAcquireOnce(AcquireLockOptions options)

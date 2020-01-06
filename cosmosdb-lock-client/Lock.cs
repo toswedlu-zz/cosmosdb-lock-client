@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using System;
 
 namespace Microsoft.Azure.Cosmos
 {
@@ -12,6 +13,9 @@ namespace Microsoft.Azure.Cosmos
 
         [JsonProperty(PropertyName = "ttl")]
         public int LeaseDuration { get; internal set; }
+
+        [JsonIgnore]
+        public DateTime TimeAcquired { get; internal set; }
 
         [JsonIgnore]
         public string ETag { get; internal set; }
