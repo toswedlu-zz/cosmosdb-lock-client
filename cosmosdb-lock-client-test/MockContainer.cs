@@ -20,6 +20,8 @@ namespace cosmosdb_lock_client_test
         Mock<Container> _mockContainer = new Mock<Container>();
         Dictionary<string, MockLeaseItem> _locks = new Dictionary<string, MockLeaseItem>();
 
+        static DateTime Now { get { return DateTime.UtcNow; } }
+
         public Container Container
         {
             get { return _mockContainer.Object; }
@@ -27,7 +29,6 @@ namespace cosmosdb_lock_client_test
 
         public Exception ExceptionToThrowOnRelease { get; set; }
         public Exception ExceptionToThrowOnRenew { get; set; }
-
         public int CreateItemCallCount { get; private set; }
 
         public MockContainer()
@@ -55,7 +56,7 @@ namespace cosmosdb_lock_client_test
             else
             {
                 string etag = Guid.NewGuid().ToString();
-                MockLeaseItem lease = new MockLeaseItem() { Lock = l, ETag = etag, TimeAquired = DateTime.UtcNow };
+                MockLeaseItem lease = new MockLeaseItem() { Lock = l, ETag = etag, TimeAquired = Now };
                 _locks.Add(l.Name, lease);
                 ItemResponse<Lock> response = CreateMockItemResponse(HttpStatusCode.Created, etag);
                 return Task.FromResult(response);
@@ -109,7 +110,7 @@ namespace cosmosdb_lock_client_test
                 {
                     _locks[s].Lock = l;
                     _locks[s].ETag = etag;
-                    _locks[s].TimeAquired = DateTime.UtcNow;
+                    _locks[s].TimeAquired = Now;
                     return Task.FromResult(response);
                 }
                 else
@@ -131,7 +132,7 @@ namespace cosmosdb_lock_client_test
             if (_locks.ContainsKey(@lock.Name))
             {
                 int leaseDurationMS = @lock.LeaseDuration * 1000;
-                TimeSpan diff = DateTime.UtcNow - _locks[@lock.Name].TimeAquired;
+                TimeSpan diff = Now - _locks[@lock.Name].TimeAquired;
                 if (_locks.ContainsKey(@lock.Name) && diff.TotalMilliseconds >= leaseDurationMS)
                 {
                     _locks.Remove(@lock.Name);

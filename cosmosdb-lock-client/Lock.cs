@@ -24,7 +24,7 @@ namespace Microsoft.Azure.Cosmos
         [JsonIgnore]
         public bool IsAquired
         {
-            get { return !_released && (DateTime.UtcNow - TimeAcquired).TotalSeconds < LeaseDuration; }
+            get { return !_released && (LockUtils.Now - TimeAcquired).TotalSeconds < LeaseDuration; }
             internal set { _released = true; }
         }
 
