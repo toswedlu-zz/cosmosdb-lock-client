@@ -7,6 +7,7 @@ namespace Microsoft.Azure.Cosmos
     public class LockClient
     {
         static string _argumentExceptionMessage = "{0} must have a non-empty, non-null value.";
+        static string _argumentNullExceptionMessage = "{0} must be non-null.";
 
         Container _container;
 
@@ -33,10 +34,6 @@ namespace Microsoft.Azure.Cosmos
                 {
                     // Proceed to the code below.
                 }
-                catch
-                {
-                    throw;
-                }
 
                 if ((DateTime.UtcNow - now).TotalMilliseconds < options.TimeoutMS)
                 {
@@ -53,15 +50,39 @@ namespace Microsoft.Azure.Cosmos
 
         public void Renew(Lock @lock)
         {
+            if (@lock == null) throw new ArgumentNullException(string.Format(_argumentNullExceptionMessage, "\"lock\""));
 
+            try
+            {
+                ItemRequestOptions options = new ItemRequestOptions() { IfMatchEtag = @lock.ETag };
+                DateTime timeAcquired = DateTime.UtcNow;
+                ItemResponse<Lock> response = _container.ReplaceItemAsync(@lock, @lock.Name, null, options).Result;
+                @lock.TimeAcquired = timeAcquired;
+                @lock.ETag = response.ETag;
+            }
+            catch (AggregateException ex)
+            {
+                CosmosException innerEx = ex.InnerException as CosmosException;
+                if (innerEx != null && (innerEx.StatusCode == HttpStatusCode.PreconditionFailed || innerEx.StatusCode == HttpStatusCode.NotFound))
+                {
+                    throw new LockReleasedException(@lock);
+                }
+                else
+                {
+                    throw;
+                }
+            }
         }
 
         public void Release(Lock @lock)
         {
+            if (@lock == null) throw new ArgumentNullException(string.Format(_argumentNullExceptionMessage, "\"lock\""));
+
             try
             {
                 ItemRequestOptions options = new ItemRequestOptions() { IfMatchEtag = @lock.ETag };
                 _container.DeleteItemAsync<Lock>(@lock.Name, new PartitionKey(@lock.PartitionKey), options).Wait();
+                @lock.IsAquired = false;
             }
             catch (AggregateException ex)
             {

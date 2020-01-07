@@ -1,13 +1,12 @@
 ﻿using Microsoft.Azure.Cosmos;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
-using System.Net;
 using System.Threading;
 
 namespace cosmosdb_lock_client_test
 {
     [TestClass]
-    public class ReleaseLockTests
+    public class RenewLockTests
     {
         [TestMethod]
         public void WithAcquiredLock()
@@ -15,21 +14,34 @@ namespace cosmosdb_lock_client_test
             AcquireLockOptions options = new AcquireLockOptions()
             {
                 PartitionKey = "test-key",
-                LockName = "test-name",
+                LockName = "test-lock",
                 LeaseDurationMS = 120000
             };
             MockContainer mockContainer = new MockContainer();
-            LockClient client = new LockClient(mockContainer.Container);
-            Lock @lock = client.Acquire(options);
-            client.Release(@lock);
-            try
+            LockClient lockClient = new LockClient(mockContainer.Container);
+            Lock @lock = lockClient.Acquire(options);
+            DateTime origTimeAcquired = @lock.TimeAcquired;
+            string origEtag = @lock.ETag;
+            lockClient.Renew(@lock);
+            Assert.IsTrue(@lock.TimeAcquired > origTimeAcquired);
+            Assert.AreNotEqual(@lock.ETag, origEtag);
+        }
+
+        [TestMethod]
+        public void WithReacquiredLock()
+        {
+            AcquireLockOptions options = new AcquireLockOptions()
             {
-                client.Acquire(options);
-            }
-            catch (LockUnavailableException)
-            {
-                Assert.Fail("Lock unavailable after release.");
-            }
+                PartitionKey = "test-key",
+                LockName = "test-lock",
+                LeaseDurationMS = 2000
+            };
+            MockContainer mockContainer = new MockContainer();
+            LockClient lockClient = new LockClient(mockContainer.Container);
+            Lock @lock = lockClient.Acquire(options);
+            Thread.Sleep(options.LeaseDurationMS);
+            Lock newLock = lockClient.Acquire(options);
+            Assert.ThrowsException<LockReleasedException>(() => lockClient.Renew(@lock));
         }
 
         [TestMethod]
@@ -38,37 +50,14 @@ namespace cosmosdb_lock_client_test
             AcquireLockOptions options = new AcquireLockOptions()
             {
                 PartitionKey = "test-key",
-                LockName = "test-name",
-                LeaseDurationMS = 1000
-            };
-            MockContainer mockContainer = new MockContainer();
-            LockClient client = new LockClient(mockContainer.Container);
-            Lock @lock = client.Acquire(options);
-            Thread.Sleep(1100);
-            try
-            {
-                client.Release(@lock);
-            }
-            catch
-            {
-                Assert.Fail();
-            }
-        }
-
-        [TestMethod]
-        public void IsNotAcquired()
-        {
-            AcquireLockOptions options = new AcquireLockOptions()
-            {
-                PartitionKey = "test-key",
-                LockName = "test-name",
-                LeaseDurationMS = 120000
+                LockName = "test-lock",
+                LeaseDurationMS = 2000
             };
             MockContainer mockContainer = new MockContainer();
             LockClient lockClient = new LockClient(mockContainer.Container);
             Lock @lock = lockClient.Acquire(options);
-            lockClient.Release(@lock);
-            Assert.IsFalse(@lock.IsAquired);
+            Thread.Sleep(options.LeaseDurationMS);
+            Assert.ThrowsException<LockReleasedException>(() => lockClient.Renew(@lock));
         }
 
         [TestMethod]
@@ -76,7 +65,7 @@ namespace cosmosdb_lock_client_test
         {
             MockContainer mockContainer = new MockContainer();
             LockClient lockClient = new LockClient(mockContainer.Container);
-            Assert.ThrowsException<ArgumentNullException>(() => lockClient.Release(null));
+            Assert.ThrowsException<ArgumentNullException>(() => lockClient.Renew(null));
         }
 
         [TestMethod]
@@ -85,15 +74,15 @@ namespace cosmosdb_lock_client_test
             AcquireLockOptions options = new AcquireLockOptions()
             {
                 PartitionKey = "test-key",
-                LockName = "test-name"
+                LockName = "test-lock"
             };
 
-            // Note: for the cosmos exception to be thrown, the status code needs to be anything but PreconditionFailed.
-            CosmosException innerEx = new CosmosException(string.Empty, HttpStatusCode.OK, 0, string.Empty, 0);
-            MockContainer mockContainer = new MockContainer() { ExceptionToThrowOnRelease = new AggregateException(innerEx) };
+            // Note: for the cosmos exception to be thrown, the status code needs to be anything but PreconditionFailed or NotFound.
+            CosmosException innerEx = new CosmosException(string.Empty, System.Net.HttpStatusCode.OK, 0, string.Empty, 0);
+            MockContainer mockContainer = new MockContainer() { ExceptionToThrowOnRenew = new AggregateException(innerEx) };
             LockClient client = new LockClient(mockContainer.Container);
             Lock @lock = client.Acquire(options);
-            Assert.ThrowsException<AggregateException>(() => client.Release(@lock));
+            Assert.ThrowsException<AggregateException>(() => client.Renew(@lock));
         }
 
         [TestMethod]
@@ -102,12 +91,12 @@ namespace cosmosdb_lock_client_test
             AcquireLockOptions options = new AcquireLockOptions()
             {
                 PartitionKey = "test-key",
-                LockName = "test-name"
+                LockName = "test-lock"
             };
-            MockContainer mockContainer = new MockContainer() { ExceptionToThrowOnRelease = new Exception() };
+            MockContainer mockContainer = new MockContainer() { ExceptionToThrowOnRenew = new Exception() };
             LockClient client = new LockClient(mockContainer.Container);
             Lock @lock = client.Acquire(options);
-            Assert.ThrowsException<Exception>(() => client.Release(@lock));
+            Assert.ThrowsException<Exception>(() => client.Renew(@lock));
         }
     }
 }

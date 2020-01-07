@@ -20,10 +20,12 @@ namespace Microsoft.Azure.Cosmos
         [JsonIgnore]
         public string ETag { get; internal set; }
 
+        bool _released = false;
         [JsonIgnore]
         public bool IsAquired
         {
-            get { return (DateTime.UtcNow - TimeAcquired).TotalMilliseconds < LeaseDuration; }
+            get { return !_released && (DateTime.UtcNow - TimeAcquired).TotalSeconds < LeaseDuration; }
+            internal set { _released = true; }
         }
 
         internal Lock() { }
