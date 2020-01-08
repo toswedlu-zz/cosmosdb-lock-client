@@ -87,7 +87,7 @@ namespace Microsoft.Azure.Cosmos
             catch (AggregateException ex)
             {
                 CosmosException innerEx = ex.InnerException as CosmosException;
-                if (innerEx == null || innerEx.StatusCode != HttpStatusCode.PreconditionFailed)
+                if (innerEx == null || (innerEx.StatusCode != HttpStatusCode.PreconditionFailed && innerEx.StatusCode != HttpStatusCode.NotFound))
                 {
                     throw;
                 }

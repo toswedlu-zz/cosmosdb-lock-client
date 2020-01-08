@@ -47,7 +47,7 @@ namespace cosmosdb_lock_client_test
         private Task<ItemResponse<Lock>> CreateItemAsync(Lock l, PartitionKey pk, ItemRequestOptions op, CancellationToken t)
         {
             CreateItemCallCount++;
-            RemoveLockIfExpired(l);
+            RemoveLockIfExpired(l.Name);
             if (_locks.ContainsKey(l.Name))
             {
                 CosmosException ex = new CosmosException(string.Empty, HttpStatusCode.Conflict, 0, string.Empty, 0);
@@ -71,6 +71,7 @@ namespace cosmosdb_lock_client_test
             }
 
             HttpStatusCode statusCode;
+            RemoveLockIfExpired(s);
             if (_locks.ContainsKey(s))
             {
                 ItemResponse<Lock> response = CreateMockItemResponse(HttpStatusCode.NoContent, _locks[s].ETag);
@@ -101,7 +102,7 @@ namespace cosmosdb_lock_client_test
             }
 
             HttpStatusCode statusCode;
-            RemoveLockIfExpired(l);
+            RemoveLockIfExpired(l.Name);
             if (_locks.ContainsKey(l.Name))
             {
                 string etag = Guid.NewGuid().ToString();
@@ -127,10 +128,11 @@ namespace cosmosdb_lock_client_test
             throw new AggregateException(string.Empty, ex);
         }
 
-        private void RemoveLockIfExpired(Lock @lock)
+        private void RemoveLockIfExpired(string name)
         {
-            if (_locks.ContainsKey(@lock.Name))
+            if (_locks.ContainsKey(name))
             {
+                Lock @lock = _locks[name].Lock;
                 int leaseDurationMS = @lock.LeaseDuration * 1000;
                 TimeSpan diff = Now - _locks[@lock.Name].TimeAquired;
                 if (_locks.ContainsKey(@lock.Name) && diff.TotalMilliseconds >= leaseDurationMS)
