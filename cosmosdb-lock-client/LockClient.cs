@@ -65,7 +65,7 @@ namespace Microsoft.Azure.Cosmos
                 CosmosException innerEx = ex.InnerException as CosmosException;
                 if (innerEx != null && (innerEx.StatusCode == HttpStatusCode.PreconditionFailed || innerEx.StatusCode == HttpStatusCode.NotFound))
                 {
-                    throw new LockReleasedException(@lock);
+                    throw new LockReleasedException(@lock, ex);
                 }
                 else
                 {
@@ -115,7 +115,7 @@ namespace Microsoft.Azure.Cosmos
                 CosmosException innerEx = ex.InnerException as CosmosException;
                 if (innerEx != null && innerEx.StatusCode == HttpStatusCode.Conflict)
                 {
-                    throw new LockUnavailableException(@lock);
+                    throw new LockUnavailableException(@lock, ex);
                 }
                 else
                 {

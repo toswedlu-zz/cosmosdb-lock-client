@@ -6,8 +6,8 @@ namespace Microsoft.Azure.Cosmos
     {
         static string _message = "The lock with parition key: \"{0}\" and name: \"{1}\" has been released/expired and no longer exists.";
 
-        public LockReleasedException(Lock @lock)
-            : base(string.Format(_message, @lock.PartitionKey, @lock.Name))
+        public LockReleasedException(Lock @lock, Exception innerEx = null)
+            : base(string.Format(_message, @lock.PartitionKey, @lock.Name), innerEx)
         {
         }
     }
