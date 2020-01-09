@@ -12,7 +12,7 @@
 
         /**
          */
-        public int LeaseDurationMS { get; set; } = 60000;
+        public int LeaseDuration { get; set; } = 60;
 
         /**
          */

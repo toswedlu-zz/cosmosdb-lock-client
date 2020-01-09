@@ -100,7 +100,7 @@ namespace Microsoft.Azure.Cosmos
             {
                 Name = options.LockName,
                 PartitionKey = options.PartitionKey,
-                LeaseDuration = options.LeaseDurationMS / 1000,
+                LeaseDuration = options.LeaseDuration,
             };
 
             try

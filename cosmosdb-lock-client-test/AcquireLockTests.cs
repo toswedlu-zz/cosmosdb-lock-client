@@ -48,7 +48,7 @@ namespace cosmosdb_lock_client_test
             {
                 PartitionKey = "test-key",
                 LockName = "test-name",
-                LeaseDurationMS = 1000
+                LeaseDuration = 1
             };
             MockContainer mockContainer = new MockContainer();
             LockClient lockClient = new LockClient(mockContainer.Container);
@@ -71,13 +71,13 @@ namespace cosmosdb_lock_client_test
             {
                 PartitionKey = "test-key",
                 LockName = "test-name",
-                LeaseDurationMS = 2000
+                LeaseDuration = 2
             };
             MockContainer mockContainer = new MockContainer();
             LockClient lockClient = new LockClient(mockContainer.Container);
             Lock @lock = lockClient.Acquire(options);
             Assert.IsTrue(@lock.IsAquired);
-            Thread.Sleep(options.LeaseDurationMS);
+            Thread.Sleep(options.LeaseDuration * 1000);
             Assert.IsFalse(@lock.IsAquired);
         }
 
