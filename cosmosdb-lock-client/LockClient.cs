@@ -4,6 +4,11 @@ using System.Threading;
 
 namespace Microsoft.Azure.Cosmos
 {
+    /**
+     * <summary>
+     * A simple locking library built on top of Cosmos DB for managing distributed locks.
+     * </summary>
+     */
     public class LockClient
     {
         static string _argumentExceptionMessage = "{0} must have a non-empty, non-null value.";
@@ -11,11 +16,30 @@ namespace Microsoft.Azure.Cosmos
 
         Container _container;
 
+        /**
+         * <summary>
+         * Instantiates a new lock client with the given Cosmos DB container.
+         * </summary>
+         * 
+         * <param name="leaseContainer"></param>
+         */
         public LockClient(Container leaseContainer)
         {
             _container = leaseContainer;
         }
 
+        /**
+         * <summary>
+         * Attempts to acquire a lock with the given options.  If the lock is unavailable, this will 
+         * retry for the specified amount of time until either acquiring the lock or giving up.
+         * </summary>
+         * 
+         * <param name="options">The options used to configure how the lock is acquired.</param>
+         * <returns>A <c>Lock</c> object representing the acquired lock.</returns>
+         * <exception cref="LockUnavailableException">
+         * If the lock is unable to be acquired within the given timeout.
+         * </exception>
+         */
         public Lock Acquire(AcquireLockOptions options)
         {
             if (string.IsNullOrWhiteSpace(options.PartitionKey)) throw new ArgumentException(string.Format(_argumentExceptionMessage, "PartitionKey"));
@@ -23,6 +47,7 @@ namespace Microsoft.Azure.Cosmos
             if (options.TimeoutMS < 0) throw new ArgumentException("TimeoutMS must be greater than zero.");
 
             bool done = false;
+            Exception innerEx = null;
             DateTime now = LockUtils.Now;
             while (!done)
             {
@@ -30,9 +55,9 @@ namespace Microsoft.Azure.Cosmos
                 {
                     return TryAcquireOnce(options);
                 }
-                catch (LockUnavailableException)
+                catch (LockUnavailableException ex)
                 {
-                    // Proceed to the code below.
+                    innerEx = ex;
                 }
 
                 if ((LockUtils.Now - now).TotalMilliseconds < options.TimeoutMS)
@@ -45,9 +70,21 @@ namespace Microsoft.Azure.Cosmos
                 }
             }
 
-            throw new LockUnavailableException(options.PartitionKey, options.LockName);
+            throw new LockUnavailableException(options.PartitionKey, options.LockName, innerEx);
         }
 
+        /**
+         * <summary>
+         * Renews the lease on the given lock.  If the lock does not exist in Cosmos DB, then the lock
+         * has been released/expired. If the lock exists in Cosmos DB, but the ETags don't match, then 
+         * lock been released/expired and reacquired as is a different lock.
+         * </summary>
+         * 
+         * <param name="lock">The lock to renew.</param>
+         * <exception cref="LockReleasedException">
+         * If the lock with the given name and ETag cannot be found in Cosmos DB.
+         * </exception>
+         */
         public void Renew(Lock @lock)
         {
             if (@lock == null) throw new ArgumentNullException(string.Format(_argumentNullExceptionMessage, "\"lock\""));
@@ -74,6 +111,13 @@ namespace Microsoft.Azure.Cosmos
             }
         }
 
+        /**
+         * <summary>
+         * Releases the lock. If the lock does not exi
+         * </summary>
+         * 
+         * <param name="lock">The lock to release.</param>
+         */
         public void Release(Lock @lock)
         {
             if (@lock == null) throw new ArgumentNullException(string.Format(_argumentNullExceptionMessage, "\"lock\""));
@@ -94,6 +138,15 @@ namespace Microsoft.Azure.Cosmos
             }
         }
 
+        /**
+         * <summary>
+         * Trys to acquire a lock only once, without retring upon failure.
+         * </summary>
+         * 
+         * <param name="options">The options used to configure how the lock is acquired.</param>
+         * <returns>A <c>Lock</c> object representing the acquired lock.</returns>
+         * <exception cref="LockUnavailableException">If the lock is unable to be acquired.</exception>
+         */
         private Lock TryAcquireOnce(AcquireLockOptions options)
         {
             Lock @lock = new Lock()

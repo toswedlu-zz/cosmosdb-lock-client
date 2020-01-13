@@ -5,22 +5,58 @@ namespace Microsoft.Azure.Cosmos
 {
     public class Lock
     {
+        bool _released = false;
+
+        /**
+         * <summary>
+         * The partition key used to find the lock in Cosmos DB. This property is serialized
+         * into a Cosmos DB item.
+         * </summary>
+         */
         [JsonProperty(PropertyName = "partitionKey")]
         public string PartitionKey { get; internal set; }
 
+        /**
+         * <summary>
+         * The unique name of the lock.  This property is serialized into a Cosmos DB
+         * item and used as the unique item ID.
+         * </summary>
+         */
         [JsonProperty(PropertyName = "id")]
         public string Name { get; internal set; }
 
+        /**
+         * <summary>
+         * The lease duration of the lock in seconds.  This property is serialized
+         * into a Cosmos DB item and used as an item's TTL duration.
+         * </summary>
+         */
         [JsonProperty(PropertyName = "ttl")]
         public int LeaseDuration { get; internal set; }
 
+        /**
+         * <summary>
+         * The timestamp the lock was aquired.  This timestamp is created local to the client.
+         * </summary>
+         */
         [JsonIgnore]
         public DateTime TimeAcquired { get; internal set; }
 
+        /**
+         * <summary>
+         * The Cosmos DB ETag document identifier used to determine the identity of a lock
+         * along with the <c>Name</c> given.
+         * </summary>
+         */
         [JsonIgnore]
         public string ETag { get; internal set; }
 
-        bool _released = false;
+        /**
+         * <summary>
+         * A flag to determine if the lock is still acquired by the client and has not 
+         * been either expired or released.
+         * </summary>
+         */
         [JsonIgnore]
         public bool IsAquired
         {
@@ -28,6 +64,11 @@ namespace Microsoft.Azure.Cosmos
             internal set { _released = true; }
         }
 
+        /**
+         * <summary>
+         * Instantiates a new Lock.  This is non-public as only the lock client should control lock object creation.
+         * </summary>
+         */
         internal Lock() { }
     }
 }
