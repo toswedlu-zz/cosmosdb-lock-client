@@ -28,9 +28,9 @@ namespace Microsoft.Azure.Cosmos
          */
         public LockClient(CosmosClient client, string databaseName, string containerName)
         {
-            if (client == null) throw new ArgumentNullException(string.Format(_argumentExceptionMessage, "\"client\""));
-            if (string.IsNullOrWhiteSpace(databaseName)) throw new ArgumentException(string.Format(_argumentExceptionMessage, "\"databaseName\""));
-            if (string.IsNullOrWhiteSpace(containerName)) throw new ArgumentException(string.Format(_argumentExceptionMessage, "\"containerName\""));
+            if (client == null) throw new ArgumentNullException(string.Format(_argumentExceptionMessage, nameof(client)));
+            if (string.IsNullOrWhiteSpace(databaseName)) throw new ArgumentException(string.Format(_argumentExceptionMessage, nameof(databaseName)));
+            if (string.IsNullOrWhiteSpace(containerName)) throw new ArgumentException(string.Format(_argumentExceptionMessage, nameof(containerName)));
 
             // Make sure the client suppports strong consistancy. Cosmos DB doesn't allow the consistency to be higher on a
             // client than what is defined on the subscription, so we can't enforce the consistancy to be strong.  But we can
@@ -56,8 +56,8 @@ namespace Microsoft.Azure.Cosmos
          */
         public Lock Acquire(AcquireLockOptions options)
         {
-            if (string.IsNullOrWhiteSpace(options.PartitionKey)) throw new ArgumentException(string.Format(_argumentExceptionMessage, "\"PartitionKey\""));
-            if (string.IsNullOrWhiteSpace(options.LockName)) throw new ArgumentException(string.Format(_argumentExceptionMessage, "\"LockName\""));
+            if (string.IsNullOrWhiteSpace(options.PartitionKey)) throw new ArgumentException(string.Format(_argumentExceptionMessage, nameof(options.PartitionKey)));
+            if (string.IsNullOrWhiteSpace(options.LockName)) throw new ArgumentException(string.Format(_argumentExceptionMessage, nameof(options.LockName)));
             if (options.TimeoutMS < 0) throw new ArgumentException("TimeoutMS must be greater than zero.");
 
             bool done = false;
@@ -101,7 +101,7 @@ namespace Microsoft.Azure.Cosmos
          */
         public void Renew(Lock @lock)
         {
-            if (@lock == null) throw new ArgumentNullException(string.Format(_argumentNullExceptionMessage, "\"lock\""));
+            if (@lock == null) throw new ArgumentNullException(string.Format(_argumentNullExceptionMessage, nameof(@lock)));
 
             try
             {
@@ -127,14 +127,14 @@ namespace Microsoft.Azure.Cosmos
 
         /**
          * <summary>
-         * Releases the lock. If the lock does not exi
+         * Releases the lock. If the lock does not exist, this will be a no-op.
          * </summary>
          * 
          * <param name="lock">The lock to release.</param>
          */
         public void Release(Lock @lock)
         {
-            if (@lock == null) throw new ArgumentNullException(string.Format(_argumentNullExceptionMessage, "\"lock\""));
+            if (@lock == null) throw new ArgumentNullException(string.Format(_argumentNullExceptionMessage, nameof(@lock)));
 
             try
             {
