@@ -133,6 +133,28 @@ namespace cosmosdb_lock_client_test
         }
 
         [TestMethod]
+        public void OptionsHasValue()
+        {
+            MockCosmosClient mockCosmosClient = new MockCosmosClient();
+            LockClient lockClient = new LockClient(mockCosmosClient.Client, "dbname", "containername");
+            AcquireLockOptions options = new AcquireLockOptions()
+            {
+                PartitionKey = "test-key",
+                LockName = "test-name"
+            };
+            try
+            {
+                lockClient.Acquire(options);
+            }
+            catch
+            {
+                Assert.Fail();
+            }
+
+            Assert.ThrowsException<ArgumentNullException>(() => lockClient.Acquire(null));
+        }
+
+        [TestMethod]
         public void ETagAssigned()
         {
             MockCosmosClient mockCosmosClient = new MockCosmosClient();

@@ -56,6 +56,7 @@ namespace Microsoft.Azure.Cosmos
          */
         public Lock Acquire(AcquireLockOptions options)
         {
+            if (options == null) throw new ArgumentNullException(string.Format(_argumentNullExceptionMessage, nameof(options)));
             if (string.IsNullOrWhiteSpace(options.PartitionKey)) throw new ArgumentException(string.Format(_argumentExceptionMessage, nameof(options.PartitionKey)));
             if (string.IsNullOrWhiteSpace(options.LockName)) throw new ArgumentException(string.Format(_argumentExceptionMessage, nameof(options.LockName)));
             if (options.TimeoutMS < 0) throw new ArgumentException("TimeoutMS must be greater than zero.");
