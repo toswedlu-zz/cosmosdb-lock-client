@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Net;
-using System.Threading;
+using System.Threading.Tasks;
 
 namespace Microsoft.Azure.Cosmos
 {
@@ -54,7 +54,7 @@ namespace Microsoft.Azure.Cosmos
          * If the lock is unable to be acquired within the given timeout.
          * </exception>
          */
-        public Lock Acquire(AcquireLockOptions options)
+        public async Task<Lock> AcquireAsync(AcquireLockOptions options)
         {
             if (options == null) throw new ArgumentNullException(string.Format(_argumentNullExceptionMessage, nameof(options)));
             if (string.IsNullOrWhiteSpace(options.PartitionKey)) throw new ArgumentException(string.Format(_argumentExceptionMessage, nameof(options.PartitionKey)));
@@ -68,7 +68,7 @@ namespace Microsoft.Azure.Cosmos
             {
                 try
                 {
-                    return TryAcquireOnce(options);
+                    return await TryAcquireOnceAsync(options);
                 }
                 catch (LockUnavailableException ex)
                 {
@@ -77,7 +77,7 @@ namespace Microsoft.Azure.Cosmos
 
                 if ((LockUtils.Now - now).TotalMilliseconds < options.TimeoutMS)
                 {
-                    Thread.Sleep(options.RetryWaitMS);
+                    await Task.Delay(options.RetryWaitMS);
                 }
                 else
                 {
@@ -100,7 +100,7 @@ namespace Microsoft.Azure.Cosmos
          * If the lock with the given name and ETag cannot be found in Cosmos DB.
          * </exception>
          */
-        public void Renew(Lock @lock)
+        public async Task RenewAsync(Lock @lock)
         {
             if (@lock == null) throw new ArgumentNullException(string.Format(_argumentNullExceptionMessage, nameof(@lock)));
 
@@ -108,7 +108,7 @@ namespace Microsoft.Azure.Cosmos
             {
                 ItemRequestOptions options = new ItemRequestOptions() { IfMatchEtag = @lock.ETag };
                 DateTime timeAcquired = LockUtils.Now;
-                ItemResponse<Lock> response = _container.ReplaceItemAsync(@lock, @lock.Name, null, options).Result;
+                ItemResponse<Lock> response = await _container.ReplaceItemAsync(@lock, @lock.Name, null, options);
                 @lock.TimeAcquired = timeAcquired;
                 @lock.ETag = response.ETag;
             }
@@ -133,14 +133,14 @@ namespace Microsoft.Azure.Cosmos
          * 
          * <param name="lock">The lock to release.</param>
          */
-        public void Release(Lock @lock)
+        public async Task ReleaseAsync(Lock @lock)
         {
             if (@lock == null) throw new ArgumentNullException(string.Format(_argumentNullExceptionMessage, nameof(@lock)));
 
             try
             {
                 ItemRequestOptions options = new ItemRequestOptions() { IfMatchEtag = @lock.ETag };
-                _container.DeleteItemAsync<Lock>(@lock.Name, new PartitionKey(@lock.PartitionKey), options).Wait();
+                await _container.DeleteItemAsync<Lock>(@lock.Name, new PartitionKey(@lock.PartitionKey), options);
                 @lock.IsAquired = false;
             }
             catch (AggregateException ex)
@@ -162,7 +162,7 @@ namespace Microsoft.Azure.Cosmos
          * <returns>A <c>Lock</c> object representing the acquired lock.</returns>
          * <exception cref="LockUnavailableException">If the lock is unable to be acquired.</exception>
          */
-        private Lock TryAcquireOnce(AcquireLockOptions options)
+        private async Task<Lock> TryAcquireOnceAsync(AcquireLockOptions options)
         {
             Lock @lock = new Lock()
             {
@@ -174,7 +174,7 @@ namespace Microsoft.Azure.Cosmos
             try
             {
                 @lock.TimeAcquired = LockUtils.Now;
-                ItemResponse<Lock> response = _container.CreateItemAsync(@lock).Result;
+                ItemResponse<Lock> response = await _container.CreateItemAsync(@lock);
                 @lock.ETag = response.ETag;
                 return @lock;
             }

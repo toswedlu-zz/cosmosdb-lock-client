@@ -3,6 +3,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Net;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace cosmosdb_lock_client_test
 {
@@ -10,7 +11,7 @@ namespace cosmosdb_lock_client_test
     public class ReleaseLockTests
     {
         [TestMethod]
-        public void WithAcquiredLock()
+        public async Task WithAcquiredLock()
         {
             MockCosmosClient mockCosmosClient = new MockCosmosClient();
             LockClient client = new LockClient(mockCosmosClient.Client, "dbname", "containername");
@@ -20,11 +21,11 @@ namespace cosmosdb_lock_client_test
                 LockName = "test-name",
                 LeaseDuration = 120
             };
-            Lock @lock = client.Acquire(options);
-            client.Release(@lock);
+            Lock @lock = await client.AcquireAsync(options);
+            await client.ReleaseAsync(@lock);
             try
             {
-                client.Acquire(options);
+                await client.AcquireAsync(options);
             }
             catch (LockUnavailableException)
             {
@@ -33,7 +34,7 @@ namespace cosmosdb_lock_client_test
         }
 
         [TestMethod]
-        public void WithExpiredLock()
+        public async Task WithExpiredLock()
         {
             MockCosmosClient mockCosmosClient = new MockCosmosClient();
             LockClient client = new LockClient(mockCosmosClient.Client, "dbname", "containername");
@@ -43,11 +44,11 @@ namespace cosmosdb_lock_client_test
                 LockName = "test-name",
                 LeaseDuration = 1
             };
-            Lock @lock = client.Acquire(options);
+            Lock @lock = await client.AcquireAsync(options);
             Thread.Sleep(options.LeaseDuration * 1000 + 100);
             try
             {
-                client.Release(@lock);
+                await client.ReleaseAsync(@lock);
             }
             catch
             {
@@ -56,7 +57,7 @@ namespace cosmosdb_lock_client_test
         }
 
         [TestMethod]
-        public void IsNotAcquired()
+        public async Task IsNotAcquired()
         {
             MockCosmosClient mockCosmosClient = new MockCosmosClient();
             LockClient lockClient = new LockClient(mockCosmosClient.Client, "dbname", "containername");
@@ -66,21 +67,21 @@ namespace cosmosdb_lock_client_test
                 LockName = "test-name",
                 LeaseDuration = 120
             };
-            Lock @lock = lockClient.Acquire(options);
-            lockClient.Release(@lock);
+            Lock @lock = await lockClient.AcquireAsync(options);
+            await lockClient.ReleaseAsync(@lock);
             Assert.IsFalse(@lock.IsAquired);
         }
 
         [TestMethod]
-        public void LockHasValue()
+        public async Task LockHasValue()
         {
             MockCosmosClient mockCosmosClient = new MockCosmosClient();
             LockClient lockClient = new LockClient(mockCosmosClient.Client, "dbname", "containername");
-            Assert.ThrowsException<ArgumentNullException>(() => lockClient.Release(null));
+            await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => lockClient.ReleaseAsync(null));
         }
 
         [TestMethod]
-        public void CosmosExceptionThrown()
+        public async Task CosmosExceptionThrown()
         {
             // Note: for the cosmos exception to be thrown, the status code needs to be anything but PreconditionFailed.
             CosmosException innerEx = new CosmosException(string.Empty, HttpStatusCode.OK, 0, string.Empty, 0);
@@ -92,12 +93,12 @@ namespace cosmosdb_lock_client_test
                 PartitionKey = "test-key",
                 LockName = "test-name"
             };
-            Lock @lock = client.Acquire(options);
-            Assert.ThrowsException<AggregateException>(() => client.Release(@lock));
+            Lock @lock = await client.AcquireAsync(options);
+            await Assert.ThrowsExceptionAsync<AggregateException>(() => client.ReleaseAsync(@lock));
         }
 
         [TestMethod]
-        public void OtherExceptionThrown()
+        public async Task OtherExceptionThrown()
         {
             MockCosmosClient mockCosmosClient = new MockCosmosClient();
             mockCosmosClient.MockContainer.ExceptionToThrowOnRelease = new Exception();
@@ -107,8 +108,8 @@ namespace cosmosdb_lock_client_test
                 PartitionKey = "test-key",
                 LockName = "test-name"
             };
-            Lock @lock = client.Acquire(options);
-            Assert.ThrowsException<Exception>(() => client.Release(@lock));
+            Lock @lock = await client.AcquireAsync(options);
+            await Assert.ThrowsExceptionAsync<Exception>(() => client.ReleaseAsync(@lock));
         }
     }
 }
