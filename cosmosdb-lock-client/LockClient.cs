@@ -21,11 +21,25 @@ namespace Microsoft.Azure.Cosmos
          * Instantiates a new lock client with the given Cosmos DB container.
          * </summary>
          * 
-         * <param name="leaseContainer"></param>
+         * <param name="client">The Cosmos DB client object.</param>
+         * <param name="databaseName">The name of the database that contains the lease container.</param>
+         * <param name="containerName">The name of the lease container.</param>
+         * <exception cref="ConsistencyLevelException">If the consistency level is anything other than Strong.</exception>
          */
-        public LockClient(Container leaseContainer)
+        public LockClient(CosmosClient client, string databaseName, string containerName)
         {
-            _container = leaseContainer;
+            if (client == null) throw new ArgumentNullException(string.Format(_argumentExceptionMessage, "\"client\""));
+            if (string.IsNullOrWhiteSpace(databaseName)) throw new ArgumentException(string.Format(_argumentExceptionMessage, "\"databaseName\""));
+            if (string.IsNullOrWhiteSpace(containerName)) throw new ArgumentException(string.Format(_argumentExceptionMessage, "\"containerName\""));
+
+            // Make sure the client suppports strong consistancy. Cosmos DB doesn't allow the consistency to be higher on a
+            // client than what is defined on the subscription, so we can't enforce the consistancy to be strong.  But we can
+            // check the consistancy on the account and fail if it isn't Strong.
+            // TODO: should network requests be made from the constructor? Or should consistency failures occur when cosmos 
+            // is queried elsewhere?
+            CheckConsitencyLevel(client);
+
+            _container = client.GetContainer(databaseName, containerName);
         }
 
         /**
@@ -42,8 +56,8 @@ namespace Microsoft.Azure.Cosmos
          */
         public Lock Acquire(AcquireLockOptions options)
         {
-            if (string.IsNullOrWhiteSpace(options.PartitionKey)) throw new ArgumentException(string.Format(_argumentExceptionMessage, "PartitionKey"));
-            if (string.IsNullOrWhiteSpace(options.LockName)) throw new ArgumentException(string.Format(_argumentExceptionMessage, "LockName"));
+            if (string.IsNullOrWhiteSpace(options.PartitionKey)) throw new ArgumentException(string.Format(_argumentExceptionMessage, "\"PartitionKey\""));
+            if (string.IsNullOrWhiteSpace(options.LockName)) throw new ArgumentException(string.Format(_argumentExceptionMessage, "\"LockName\""));
             if (options.TimeoutMS < 0) throw new ArgumentException("TimeoutMS must be greater than zero.");
 
             bool done = false;
@@ -174,6 +188,45 @@ namespace Microsoft.Azure.Cosmos
                 {
                     throw;
                 }
+            }
+        }
+
+        /**
+         * <summary>
+         * Checks the consistency level on the client & account level.  For locking to work properly,
+         * a consistency level of Strong is needed.  There is no way currently to enforce a Strong consistency
+         * level programmatically considering a client can only have an equal or lower level of consistency
+         * than what is defined on the account.
+         * </summary>
+         * 
+         * <param name="client">The Cosmos DB client to query account consistency against.</param>
+         * <exception cref="ConsistencyLevelException">If the consistency level is anything other than Strong.</exception>
+         */
+        private void CheckConsitencyLevel(CosmosClient client)
+        {
+            bool strong = true;
+            AccountProperties properties = client.ReadAccountAsync().Result;
+            ConsistencyLevel level = client.ClientOptions.ConsistencyLevel ?? properties.Consistency.DefaultConsistencyLevel;
+            Exception innerEx = null;
+            try
+            {
+                if (level != ConsistencyLevel.Strong)
+                {
+                    strong = false;
+                }
+            }
+            catch (AggregateException ex)
+            {
+                innerEx = ex;
+                if (ex.InnerException != null && ex.InnerException is ArgumentException)
+                {
+                    strong = false;
+                }
+            }
+
+            if (!strong)
+            {
+                throw new ConsistencyLevelException(level, innerEx);
             }
         }
     }

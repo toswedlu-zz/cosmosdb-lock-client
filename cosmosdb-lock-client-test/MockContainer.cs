@@ -40,7 +40,7 @@ namespace cosmosdb_lock_client_test
                 .Setup(x => x.DeleteItemAsync<Lock>(It.IsAny<string>(), It.IsAny<PartitionKey>(), It.IsAny<ItemRequestOptions>(), default))
                 .Returns<string, PartitionKey, ItemRequestOptions, CancellationToken>(DeleteItemAsync);
             _mockContainer
-                .Setup(x => x.ReplaceItemAsync<Lock>(It.IsAny<Lock>(), It.IsAny<string>(), null, It.IsAny<ItemRequestOptions>(), default))
+                .Setup(x => x.ReplaceItemAsync(It.IsAny<Lock>(), It.IsAny<string>(), null, It.IsAny<ItemRequestOptions>(), default))
                 .Returns<Lock, string, PartitionKey, ItemRequestOptions, CancellationToken>(ReplaceItemAsync);
         }
 

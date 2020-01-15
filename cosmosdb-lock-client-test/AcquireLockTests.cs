@@ -11,6 +11,8 @@ namespace cosmosdb_lock_client_test
         [TestMethod]
         public void FailAfterTimeout()
         {
+            MockCosmosClient mockCosmosClient = new MockCosmosClient();
+            LockClient lockClient = new LockClient(mockCosmosClient.Client, "dbname", "containername");
             AcquireLockOptions options = new AcquireLockOptions()
             {
                 PartitionKey = "test-key",
@@ -18,40 +20,38 @@ namespace cosmosdb_lock_client_test
                 TimeoutMS = 2000,
                 RetryWaitMS = 1000
             };
-            MockContainer mockContainer = new MockContainer();
-            LockClient lockClient = new LockClient(mockContainer.Container);
             lockClient.Acquire(options);
             Assert.ThrowsException<LockUnavailableException>(() => lockClient.Acquire(options));
-            Assert.AreEqual(4, mockContainer.CreateItemCallCount);
+            Assert.AreEqual(4, mockCosmosClient.MockContainer.CreateItemCallCount);
         }
 
         [TestMethod]
         public void FailWithZeroTimeout()
         {
+            MockCosmosClient mockCosmosClient = new MockCosmosClient();
+            LockClient lockClient = new LockClient(mockCosmosClient.Client, "dbname", "containername");
             AcquireLockOptions options = new AcquireLockOptions()
             {
                 PartitionKey = "test-key",
                 LockName = "test-name",
                 TimeoutMS = 0
             };
-            MockContainer mockContainer = new MockContainer();
-            LockClient lockClient = new LockClient(mockContainer.Container);
             lockClient.Acquire(options);
             Assert.ThrowsException<LockUnavailableException>(() => lockClient.Acquire(options));
-            Assert.AreEqual(2, mockContainer.CreateItemCallCount);
+            Assert.AreEqual(2, mockCosmosClient.MockContainer.CreateItemCallCount);
         }
 
         [TestMethod]
         public void WithExpiredLock()
         {
+            MockCosmosClient mockCosmosClient = new MockCosmosClient();
+            LockClient lockClient = new LockClient(mockCosmosClient.Client, "dbname", "containername");
             AcquireLockOptions options = new AcquireLockOptions()
             {
                 PartitionKey = "test-key",
                 LockName = "test-name",
                 LeaseDuration = 1
             };
-            MockContainer mockContainer = new MockContainer();
-            LockClient lockClient = new LockClient(mockContainer.Container);
             string etag = lockClient.Acquire(options).ETag;
             Thread.Sleep(1100);
             try
@@ -67,14 +67,14 @@ namespace cosmosdb_lock_client_test
         [TestMethod]
         public void IsAcquired()
         {
+            MockCosmosClient mockCosmosClient = new MockCosmosClient();
+            LockClient lockClient = new LockClient(mockCosmosClient.Client, "dbname", "containername");
             AcquireLockOptions options = new AcquireLockOptions()
             {
                 PartitionKey = "test-key",
                 LockName = "test-name",
                 LeaseDuration = 2
             };
-            MockContainer mockContainer = new MockContainer();
-            LockClient lockClient = new LockClient(mockContainer.Container);
             Lock @lock = lockClient.Acquire(options);
             Assert.IsTrue(@lock.IsAquired);
             Thread.Sleep(options.LeaseDuration * 1000);
@@ -84,13 +84,13 @@ namespace cosmosdb_lock_client_test
         [TestMethod]
         public void ParitionKeyHasValue()
         {
+            MockCosmosClient mockCosmosClient = new MockCosmosClient();
+            LockClient lockClient = new LockClient(mockCosmosClient.Client, "dbname", "containername");
             AcquireLockOptions options = new AcquireLockOptions()
             {
                 PartitionKey = string.Empty,
                 LockName = "test-name"
             };
-            MockContainer mockContainer = new MockContainer();
-            LockClient lockClient = new LockClient(mockContainer.Container);
             Assert.ThrowsException<ArgumentException>(() => lockClient.Acquire(options));
 
             options.PartitionKey = null;
@@ -110,13 +110,13 @@ namespace cosmosdb_lock_client_test
         [TestMethod]
         public void LockNameHasValue()
         {
+            MockCosmosClient mockCosmosClient = new MockCosmosClient();
+            LockClient lockClient = new LockClient(mockCosmosClient.Client, "dbname", "containername");
             AcquireLockOptions options = new AcquireLockOptions()
             {
                 PartitionKey = "test-key",
                 LockName = string.Empty
             };
-            MockContainer mockContainer = new MockContainer();
-            LockClient lockClient = new LockClient(mockContainer.Container);
             Assert.ThrowsException<ArgumentException>(() => lockClient.Acquire(options));
 
             options.LockName = null;
@@ -135,13 +135,13 @@ namespace cosmosdb_lock_client_test
         [TestMethod]
         public void ETagAssigned()
         {
+            MockCosmosClient mockCosmosClient = new MockCosmosClient();
+            LockClient lockClient = new LockClient(mockCosmosClient.Client, "dbname", "containername");
             AcquireLockOptions options = new AcquireLockOptions()
             {
                 PartitionKey = "test-key",
                 LockName = "test-lock"
             };
-            MockContainer mockContainer = new MockContainer();
-            LockClient lockClient = new LockClient(mockContainer.Container);
             Lock @lock = lockClient.Acquire(options);
             Assert.IsTrue(!string.IsNullOrWhiteSpace(@lock.ETag));
         }
