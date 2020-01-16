@@ -30,6 +30,7 @@ namespace cosmosdb_lock_client_test
         public Exception ExceptionToThrowOnRelease { get; set; }
         public Exception ExceptionToThrowOnRenew { get; set; }
         public int CreateItemCallCount { get; private set; }
+        public int ReplaceItemCallCount { get; private set; }
 
         public MockContainer()
         {
@@ -96,6 +97,7 @@ namespace cosmosdb_lock_client_test
 
         private Task<ItemResponse<Lock>> ReplaceItemAsync(Lock l, string s, PartitionKey pk, ItemRequestOptions op, CancellationToken t)
         {
+            ReplaceItemCallCount++;
             if (ExceptionToThrowOnRenew != null)
             {
                 throw ExceptionToThrowOnRenew;

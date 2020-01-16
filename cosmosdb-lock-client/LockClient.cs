@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net;
 using System.Threading.Tasks;
+using System.Timers;
 
 namespace Microsoft.Azure.Cosmos
 {
@@ -68,7 +69,12 @@ namespace Microsoft.Azure.Cosmos
             {
                 try
                 {
-                    return await TryAcquireOnceAsync(options);
+                    Lock @lock = await TryAcquireOnceAsync(options);
+                    if (options.AutoRenew)
+                    {
+                        LaunchAutoRenewTimer(@lock);
+                    }
+                    return @lock;
                 }
                 catch (LockUnavailableException ex)
                 {
@@ -142,6 +148,11 @@ namespace Microsoft.Azure.Cosmos
                 ItemRequestOptions options = new ItemRequestOptions() { IfMatchEtag = @lock.ETag };
                 await _container.DeleteItemAsync<Lock>(@lock.Name, new PartitionKey(@lock.PartitionKey), options);
                 @lock.IsAquired = false;
+                if (@lock.AutoRenewTimer != null)
+                {
+                    @lock.AutoRenewTimer.Stop();
+                    @lock.AutoRenewTimer = null;
+                }
             }
             catch (AggregateException ex)
             {
@@ -218,6 +229,8 @@ namespace Microsoft.Azure.Cosmos
             }
             catch (AggregateException ex)
             {
+                // If the client's consistency level is greater than that of the account's, ReadAccountAsync will 
+                // throw an AggregateException.  Unfortuneately, there is no error code to confirm exac
                 innerEx = ex;
                 if (ex.InnerException != null && ex.InnerException is ArgumentException)
                 {
@@ -229,6 +242,46 @@ namespace Microsoft.Azure.Cosmos
             {
                 throw new ConsistencyLevelException(level, innerEx);
             }
+        }
+
+        /**
+         * <summary>
+         * Creates and launchs a timer which will periodically renew the lease 
+         * on the given lock.
+         * </summary>
+         * 
+         * <param name="lock">The lock to automatically renew.</param>
+         */
+        private void LaunchAutoRenewTimer(Lock @lock)
+        {
+            double third = @lock.LeaseDuration * 1000 / 3.0;
+            Timer timer = new Timer(third) { AutoReset = false };
+            timer.Elapsed += async (sender, args) =>
+            {
+                DateTime start = LockUtils.Now;
+                if (@lock.IsAquired)
+                {
+                    Console.WriteLine("IsAquired");
+                    try
+                    {
+                        await RenewAsync(@lock);
+                    }
+                    catch
+                    {
+                        // Try again momentarily.
+                    }
+
+                    TimeSpan elapsed = LockUtils.Now - start;
+                    timer.Interval = Math.Max(0.1, third - elapsed.TotalMilliseconds);
+                    timer.Start();
+                }
+                else
+                {
+                    @lock.AutoRenewTimer = null;
+                }
+            };
+            @lock.AutoRenewTimer = timer;
+            timer.Start();
         }
     }
 }

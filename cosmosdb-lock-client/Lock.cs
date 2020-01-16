@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using System;
+using System.Timers;
 
 namespace Microsoft.Azure.Cosmos
 {
@@ -44,15 +45,6 @@ namespace Microsoft.Azure.Cosmos
 
         /**
          * <summary>
-         * The Cosmos DB ETag document identifier used to determine the identity of a lock
-         * along with the <c>Name</c> given.
-         * </summary>
-         */
-        [JsonIgnore]
-        public string ETag { get; internal set; }
-
-        /**
-         * <summary>
          * A flag to determine if the lock is still acquired by the client and has not 
          * been either expired or released.
          * </summary>
@@ -63,6 +55,24 @@ namespace Microsoft.Azure.Cosmos
             get { return !_released && (LockUtils.Now - TimeAcquired).TotalSeconds < LeaseDuration; }
             internal set { _released = true; }
         }
+
+        /**
+         * <summary>
+         * The Cosmos DB ETag document identifier used to determine the identity of a lock
+         * along with the <c>Name</c> given.
+         * </summary>
+         */
+        [JsonIgnore]
+        public string ETag { get; internal set; }
+
+        /**
+         * <summary>
+         * A timer which will automatically renew the lock indefinitely.  This timer
+         * will only be instantiated and active if AcquireLockOptions.AutoRenew is true.
+         * </summary>
+         */
+        [JsonIgnore]
+        internal Timer AutoRenewTimer { get; set; }
 
         /**
          * <summary>

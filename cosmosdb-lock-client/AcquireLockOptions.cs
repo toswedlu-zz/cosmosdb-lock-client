@@ -38,5 +38,13 @@
          * </summary>
          */
         public int RetryWaitMS { get; set; } = 1000;
+
+        /**
+         * <summary>
+         * Whether or not to create an auto-renew timer object which will periodically
+         * renew the lock before it expires.
+         * </summary>
+         */
+        public bool AutoRenew { get; set; } = false;
     }
 }
