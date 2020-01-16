@@ -22,10 +22,8 @@ namespace cosmosdb_lock_client_test
             };
             Lock @lock = await lockClient.AcquireAsync(options);
             DateTime origTimeAcquired = @lock.TimeAcquired;
-            string origEtag = @lock.ETag;
             await lockClient.RenewAsync(@lock);
             Assert.IsTrue(@lock.TimeAcquired > origTimeAcquired);
-            Assert.AreNotEqual(@lock.ETag, origEtag);
         }
 
         [TestMethod]

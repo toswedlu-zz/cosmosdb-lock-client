@@ -63,7 +63,7 @@ namespace Microsoft.Azure.Cosmos
          * </summary>
          */
         [JsonIgnore]
-        public string ETag { get; internal set; }
+        internal string ETag { get; set; }
 
         /**
          * <summary>

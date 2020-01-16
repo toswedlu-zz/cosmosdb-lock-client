@@ -53,11 +53,10 @@ namespace cosmosdb_lock_client_test
                 LockName = "test-name",
                 LeaseDuration = 1
             };
-            string etag = (await lockClient.AcquireAsync(options)).ETag;
             Thread.Sleep(options.LeaseDuration * 1000 + 100);
             try
             {
-                Assert.AreNotEqual(etag, (await lockClient.AcquireAsync(options)).ETag);
+                await lockClient.AcquireAsync(options);
             }
             catch (LockUnavailableException)
             {
@@ -153,20 +152,6 @@ namespace cosmosdb_lock_client_test
             }
 
             await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => lockClient.AcquireAsync(null));
-        }
-
-        [TestMethod]
-        public async Task ETagAssigned()
-        {
-            MockCosmosClient mockCosmosClient = new MockCosmosClient();
-            LockClient lockClient = new LockClient(mockCosmosClient.Client, "dbname", "containername");
-            AcquireLockOptions options = new AcquireLockOptions()
-            {
-                PartitionKey = "test-key",
-                LockName = "test-lock"
-            };
-            Lock @lock = await lockClient.AcquireAsync(options);
-            Assert.IsTrue(!string.IsNullOrWhiteSpace(@lock.ETag));
         }
     }
 }
