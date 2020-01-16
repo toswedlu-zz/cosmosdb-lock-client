@@ -20,7 +20,7 @@ namespace cosmosdb_lock_client_test
                 AutoRenew = false,
                 LeaseDuration = 2
             };
-            Lock @lock = await lockClient.AcquireAsync(options);
+            await lockClient.AcquireAsync(options);
             await Task.Delay(options.LeaseDuration * 1000);
             Assert.AreEqual(0, mockCosmosClient.MockContainer.ReplaceItemCallCount);
         }
@@ -78,8 +78,9 @@ namespace cosmosdb_lock_client_test
             Lock @lock = await lockClient.AcquireAsync(options);
             await Task.Delay(options.LeaseDuration * 1000);
             await lockClient.ReleaseAsync(@lock);
+            int count = mockCosmosClient.MockContainer.ReplaceItemCallCount;
             await Task.Delay(options.LeaseDuration * 1000);
-            Assert.AreEqual(2, mockCosmosClient.MockContainer.ReplaceItemCallCount);
+            Assert.AreEqual(count, mockCosmosClient.MockContainer.ReplaceItemCallCount);
         }
     }
 }

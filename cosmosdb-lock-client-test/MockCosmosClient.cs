@@ -35,6 +35,8 @@ namespace cosmosdb_lock_client_test
         {
             if (AccountConsistencyLevel == ConsistencyLevel.Strong)
             {
+                // Note that Moq can't be used on AccountProperties because its not abstract nor virtual.
+                // So fake a mock via JSON deserialization.
                 string json = $"{{ \"userConsistencyPolicy\": {{ \"DefaultConsistencyPolicy\": \"Strong\" }} }}";
                 return Task.FromResult(JsonConvert.DeserializeObject<AccountProperties>(json));
             }

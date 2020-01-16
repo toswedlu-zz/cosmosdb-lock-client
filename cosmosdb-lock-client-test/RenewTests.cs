@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 namespace cosmosdb_lock_client_test
 {
     [TestClass]
-    public class RenewLockTests
+    public class RenewTests
     {
         [TestMethod]
         public async Task WithAcquiredLock()
@@ -63,6 +63,21 @@ namespace cosmosdb_lock_client_test
         {
             MockCosmosClient mockCosmosClient = new MockCosmosClient();
             LockClient lockClient = new LockClient(mockCosmosClient.Client, "dbname", "containername");
+            AcquireLockOptions options = new AcquireLockOptions()
+            {
+                PartitionKey = "test-key",
+                LockName = "test-lock",
+                LeaseDuration = 120
+            };
+            try
+            {
+                Lock @lock = await lockClient.AcquireAsync(options);
+                await lockClient.RenewAsync(@lock);
+            }
+            catch
+            {
+                Assert.Fail();
+            }
             await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => lockClient.RenewAsync(null));
         }
 

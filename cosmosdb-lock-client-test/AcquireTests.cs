@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 namespace cosmosdb_lock_client_test
 {
     [TestClass]
-    public class AcquireLockTests
+    public class AcquireTests
     {
         [TestMethod]
         public async Task FailAfterTimeout()
@@ -52,7 +52,8 @@ namespace cosmosdb_lock_client_test
                 LockName = "test-name",
                 LeaseDuration = 1
             };
-            await Task.Delay(options.LeaseDuration * 1000 + 100);
+            await lockClient.AcquireAsync(options);
+            await Task.Delay(options.LeaseDuration * 1000);
             try
             {
                 await lockClient.AcquireAsync(options);

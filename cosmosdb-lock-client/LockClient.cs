@@ -43,8 +43,6 @@ namespace Microsoft.Azure.Cosmos
             // Make sure the client suppports strong consistancy. Cosmos DB doesn't allow the consistency to be higher on a
             // client than what is defined on the subscription, so we can't enforce the consistancy to be strong.  But we can
             // check the consistancy on the account and fail if it isn't Strong.
-            // TODO: should network requests be made from the constructor? Or should consistency failures occur when cosmos 
-            // is queried elsewhere?
             CheckConsitencyLevel(client);
 
             _container = client.GetContainer(databaseName, containerName);
@@ -64,7 +62,11 @@ namespace Microsoft.Azure.Cosmos
          */
         public async Task<Lock> AcquireAsync(AcquireLockOptions options)
         {
-            CheckAcquireOptions(options);
+            if (options == null) throw new ArgumentNullException(string.Format(_argumentNullExceptionMessage, nameof(options)));
+            if (string.IsNullOrWhiteSpace(options.PartitionKey)) throw new ArgumentException(string.Format(_argumentExceptionMessage, nameof(options.PartitionKey)));
+            if (string.IsNullOrWhiteSpace(options.LockName)) throw new ArgumentException(string.Format(_argumentExceptionMessage, nameof(options.LockName)));
+            if (options.TimeoutMS < 0) throw new ArgumentException(string.Format(_greaterThanZeroMessage, nameof(options.TimeoutMS)));
+            if (options.RetryWaitMS < 0) throw new ArgumentException(string.Format(_greaterThanZeroMessage, nameof(options.RetryWaitMS)));
 
             bool done = false;
             Exception innerEx = null;
@@ -102,7 +104,7 @@ namespace Microsoft.Azure.Cosmos
          * <summary>
          * Renews the lease on the given lock.  If the lock does not exist in Cosmos DB, then the lock
          * has been released/expired. If the lock exists in Cosmos DB, but the ETags don't match, then 
-         * lock been released/expired and reacquired as is a different lock.
+         * the lock has been released/expired and reacquired as is a different lock.
          * </summary>
          * 
          * <param name="lock">The lock to renew.</param>
@@ -149,17 +151,21 @@ namespace Microsoft.Azure.Cosmos
 
             try
             {
-                ItemRequestOptions options = new ItemRequestOptions() { IfMatchEtag = @lock.ETag };
-                await _container.DeleteItemAsync<Lock>(@lock.Name, new PartitionKey(@lock.PartitionKey), options);
-                @lock.IsAquired = false;
+                // Kill the auto-renew timer before deleting the lock item from Cosmos DB.
                 if (@lock.AutoRenewTimer != null)
                 {
                     @lock.AutoRenewTimer.Stop();
                     @lock.AutoRenewTimer = null;
                 }
+                ItemRequestOptions options = new ItemRequestOptions() { IfMatchEtag = @lock.ETag };
+                await _container.DeleteItemAsync<Lock>(@lock.Name, new PartitionKey(@lock.PartitionKey), options);
+                @lock.IsAquired = false;
+               
             }
             catch (AggregateException ex)
             {
+                // If the lock isn't found (NotFound) or the lock is found but the ETag doesn't match (PreconditionFailed),
+                // swallow the exception.  The lock is already expired/released.
                 CosmosException innerEx = ex.InnerException as CosmosException;
                 if (innerEx == null || (innerEx.StatusCode != HttpStatusCode.PreconditionFailed && innerEx.StatusCode != HttpStatusCode.NotFound))
                 {
@@ -170,7 +176,7 @@ namespace Microsoft.Azure.Cosmos
 
         /**
          * <summary>
-         * Trys to acquire a lock only once, without retring upon failure.
+         * Trys to acquire a lock only once, without retrying upon failure.
          * </summary>
          * 
          * <param name="options">The options used to configure how the lock is acquired.</param>
@@ -234,11 +240,16 @@ namespace Microsoft.Azure.Cosmos
             catch (AggregateException ex)
             {
                 // If the client's consistency level is greater than that of the account's, ReadAccountAsync will 
-                // throw an AggregateException.  Unfortuneately, there is no error code to confirm exac
+                // throw an AggregateException.  Unfortuneately, there is no error code to confirm exactly what went
+                // wrong so we just have to make an assumption.
                 innerEx = ex;
                 if (ex.InnerException != null && ex.InnerException is ArgumentException)
                 {
                     strong = false;
+                }
+                else
+                {
+                    throw;
                 }
             }
 
@@ -286,22 +297,6 @@ namespace Microsoft.Azure.Cosmos
             };
             @lock.AutoRenewTimer = timer;
             timer.Start();
-        }
-
-        /**
-         * <summary>
-         * Validates each of the options' properties for appropriate values.
-         * </summary>
-         * 
-         * <param name="options">The options to validate.</param>
-         */
-        private void CheckAcquireOptions(AcquireLockOptions options)
-        {
-            if (options == null) throw new ArgumentNullException(string.Format(_argumentNullExceptionMessage, nameof(options)));
-            if (string.IsNullOrWhiteSpace(options.PartitionKey)) throw new ArgumentException(string.Format(_argumentExceptionMessage, nameof(options.PartitionKey)));
-            if (string.IsNullOrWhiteSpace(options.LockName)) throw new ArgumentException(string.Format(_argumentExceptionMessage, nameof(options.LockName)));
-            if (options.TimeoutMS < 0) throw new ArgumentException(string.Format(_greaterThanZeroMessage, nameof(options.TimeoutMS)));
-            if (options.RetryWaitMS < 0) throw new ArgumentException(string.Format(_greaterThanZeroMessage, nameof(options.RetryWaitMS)));
         }
     }
 }

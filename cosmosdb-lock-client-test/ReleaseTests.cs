@@ -2,13 +2,12 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Net;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace cosmosdb_lock_client_test
 {
     [TestClass]
-    public class ReleaseLockTests
+    public class ReleaseTests
     {
         [TestMethod]
         public async Task WithAcquiredLock()
@@ -45,7 +44,7 @@ namespace cosmosdb_lock_client_test
                 LeaseDuration = 1
             };
             Lock @lock = await client.AcquireAsync(options);
-            await Task.Delay(options.LeaseDuration * 1000 + 100);
+            await Task.Delay(options.LeaseDuration * 1500);
             try
             {
                 await client.ReleaseAsync(@lock);
@@ -57,7 +56,7 @@ namespace cosmosdb_lock_client_test
         }
 
         [TestMethod]
-        public async Task IsNotAcquired()
+        public async Task IsAcquired()
         {
             MockCosmosClient mockCosmosClient = new MockCosmosClient();
             LockClient lockClient = new LockClient(mockCosmosClient.Client, "dbname", "containername");
@@ -68,6 +67,7 @@ namespace cosmosdb_lock_client_test
                 LeaseDuration = 120
             };
             Lock @lock = await lockClient.AcquireAsync(options);
+            Assert.IsTrue(@lock.IsAquired);
             await lockClient.ReleaseAsync(@lock);
             Assert.IsFalse(@lock.IsAquired);
         }
@@ -77,6 +77,21 @@ namespace cosmosdb_lock_client_test
         {
             MockCosmosClient mockCosmosClient = new MockCosmosClient();
             LockClient lockClient = new LockClient(mockCosmosClient.Client, "dbname", "containername");
+            AcquireLockOptions options = new AcquireLockOptions()
+            {
+                PartitionKey = "test-key",
+                LockName = "test-name",
+                LeaseDuration = 120
+            };
+            try
+            {
+                Lock @lock = await lockClient.AcquireAsync(options);
+                await lockClient.ReleaseAsync(@lock);
+            }
+            catch
+            {
+                Assert.Fail();
+            }
             await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => lockClient.ReleaseAsync(null));
         }
 

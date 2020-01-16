@@ -4,7 +4,7 @@
     {
         /**
          * <summary>
-         * The parition key used to find the lock in Cosmos DB>
+         * The parition key used to find the lock in Cosmos DB.
          * </summary>
          */
         public string PartitionKey { get; set; }
