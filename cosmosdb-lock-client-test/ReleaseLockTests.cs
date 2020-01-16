@@ -45,7 +45,7 @@ namespace cosmosdb_lock_client_test
                 LeaseDuration = 1
             };
             Lock @lock = await client.AcquireAsync(options);
-            Thread.Sleep(options.LeaseDuration * 1000 + 100);
+            await Task.Delay(options.LeaseDuration * 1000 + 100);
             try
             {
                 await client.ReleaseAsync(@lock);

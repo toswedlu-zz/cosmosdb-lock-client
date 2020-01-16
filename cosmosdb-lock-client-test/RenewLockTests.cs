@@ -1,7 +1,6 @@
 ﻿using Microsoft.Azure.Cosmos;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace cosmosdb_lock_client_test
@@ -38,7 +37,7 @@ namespace cosmosdb_lock_client_test
                 LeaseDuration = 2
             };
             Lock @lock = await lockClient.AcquireAsync(options);
-            Thread.Sleep(options.LeaseDuration * 1000);
+            await Task.Delay(options.LeaseDuration * 1000);
             Lock newLock = await lockClient.AcquireAsync(options);
             await Assert.ThrowsExceptionAsync<LockReleasedException>(() => lockClient.RenewAsync(@lock));
         }
@@ -55,7 +54,7 @@ namespace cosmosdb_lock_client_test
                 LeaseDuration = 2
             };
             Lock @lock = await lockClient.AcquireAsync(options);
-            Thread.Sleep(options.LeaseDuration * 1000);
+            await Task.Delay(options.LeaseDuration * 1000);
             await Assert.ThrowsExceptionAsync<LockReleasedException>(() => lockClient.RenewAsync(@lock));
         }
 
