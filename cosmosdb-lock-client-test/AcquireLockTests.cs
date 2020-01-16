@@ -124,6 +124,7 @@ namespace cosmosdb_lock_client_test
             try
             {
                 options.LockName = "test-lock";
+                await lockClient.AcquireAsync(options);
             }
             catch
             {
@@ -151,6 +152,54 @@ namespace cosmosdb_lock_client_test
             }
 
             await Assert.ThrowsExceptionAsync<ArgumentNullException>(() => lockClient.AcquireAsync(null));
+        }
+
+        [TestMethod]
+        public async Task TimeoutMSHasProperValue()
+        {
+            MockCosmosClient mockCosmosClient = new MockCosmosClient();
+            LockClient lockClient = new LockClient(mockCosmosClient.Client, "dbname", "containername");
+            AcquireLockOptions options = new AcquireLockOptions()
+            {
+                PartitionKey = "test-key",
+                LockName = "test-name",
+                TimeoutMS = -1
+            };
+            await Assert.ThrowsExceptionAsync<ArgumentException>(() => lockClient.AcquireAsync(options));
+
+            try
+            {
+                options.TimeoutMS = 1;
+                await lockClient.AcquireAsync(options);
+            }
+            catch
+            {
+                Assert.Fail();
+            }
+        }
+
+        [TestMethod]
+        public async Task RetryMSHasValue()
+        {
+            MockCosmosClient mockCosmosClient = new MockCosmosClient();
+            LockClient lockClient = new LockClient(mockCosmosClient.Client, "dbname", "containername");
+            AcquireLockOptions options = new AcquireLockOptions()
+            {
+                PartitionKey = "test-key",
+                LockName = "test-name",
+                RetryWaitMS = -1
+            };
+            await Assert.ThrowsExceptionAsync<ArgumentException>(() => lockClient.AcquireAsync(options));
+
+            try
+            {
+                options.RetryWaitMS = 1;
+                await lockClient.AcquireAsync(options);
+            }
+            catch
+            {
+                Assert.Fail();
+            }
         }
     }
 }

@@ -7,13 +7,20 @@ namespace Microsoft.Azure.Cosmos
 {
     /**
      * <summary>
-     * A simple locking library built on top of Cosmos DB for managing distributed locks.
+     * A simple locking library built on top of Cosmos DB for managing distributed locks relying on
+     * Cosmos DB's Strong consitency level.  To avoid clock skew issues, lease duration is defined 
+     * using Cosmos DB's item-level TTL functionality.  As long as a lock exists in the database,
+     * it has been acquired.  Upon release, the lock is deleted.  Upon expiration, the lock is removed
+     * according to its TTL.  During a 'renew' operation, the item is touched, forcing its timestamp to be
+     * updated and its TTL timer to be restarted.  Everytime a lock item is created or renewed, its ETag is 
+     * updated correspondingly.  The ETag is used to uniquely identify a lock along with the lock's name.
      * </summary>
      */
     public class LockClient
     {
         static string _argumentExceptionMessage = "{0} must have a non-empty, non-null value.";
         static string _argumentNullExceptionMessage = "{0} must be non-null.";
+        static string _greaterThanZeroMessage = "{0} must be greater than zero.";
 
         Container _container;
 
@@ -57,10 +64,7 @@ namespace Microsoft.Azure.Cosmos
          */
         public async Task<Lock> AcquireAsync(AcquireLockOptions options)
         {
-            if (options == null) throw new ArgumentNullException(string.Format(_argumentNullExceptionMessage, nameof(options)));
-            if (string.IsNullOrWhiteSpace(options.PartitionKey)) throw new ArgumentException(string.Format(_argumentExceptionMessage, nameof(options.PartitionKey)));
-            if (string.IsNullOrWhiteSpace(options.LockName)) throw new ArgumentException(string.Format(_argumentExceptionMessage, nameof(options.LockName)));
-            if (options.TimeoutMS < 0) throw new ArgumentException("TimeoutMS must be greater than zero.");
+            CheckAcquireOptions(options);
 
             bool done = false;
             Exception innerEx = null;
@@ -282,6 +286,22 @@ namespace Microsoft.Azure.Cosmos
             };
             @lock.AutoRenewTimer = timer;
             timer.Start();
+        }
+
+        /**
+         * <summary>
+         * Validates each of the options' properties for appropriate values.
+         * </summary>
+         * 
+         * <param name="options">The options to validate.</param>
+         */
+        private void CheckAcquireOptions(AcquireLockOptions options)
+        {
+            if (options == null) throw new ArgumentNullException(string.Format(_argumentNullExceptionMessage, nameof(options)));
+            if (string.IsNullOrWhiteSpace(options.PartitionKey)) throw new ArgumentException(string.Format(_argumentExceptionMessage, nameof(options.PartitionKey)));
+            if (string.IsNullOrWhiteSpace(options.LockName)) throw new ArgumentException(string.Format(_argumentExceptionMessage, nameof(options.LockName)));
+            if (options.TimeoutMS < 0) throw new ArgumentException(string.Format(_greaterThanZeroMessage, nameof(options.TimeoutMS)));
+            if (options.RetryWaitMS < 0) throw new ArgumentException(string.Format(_greaterThanZeroMessage, nameof(options.RetryWaitMS)));
         }
     }
 }
