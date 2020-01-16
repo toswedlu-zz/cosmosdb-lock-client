@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Microsoft.Azure.Cosmos
+namespace Microsoft.Azure.Cosmos.Locking
 {
     public class LockUnavailableException : Exception
     {

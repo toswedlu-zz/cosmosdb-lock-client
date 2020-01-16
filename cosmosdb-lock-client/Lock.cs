@@ -2,7 +2,7 @@
 using System;
 using System.Timers;
 
-namespace Microsoft.Azure.Cosmos
+namespace Microsoft.Azure.Cosmos.Locking
 {
     public class Lock
     {

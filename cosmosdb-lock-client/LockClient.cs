@@ -3,7 +3,7 @@ using System.Net;
 using System.Threading.Tasks;
 using System.Timers;
 
-namespace Microsoft.Azure.Cosmos
+namespace Microsoft.Azure.Cosmos.Locking
 {
     /**
      * <summary>

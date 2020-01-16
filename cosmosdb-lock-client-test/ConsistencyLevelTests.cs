@@ -1,4 +1,5 @@
 ﻿using Microsoft.Azure.Cosmos;
+using Microsoft.Azure.Cosmos.Locking;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace cosmosdb_lock_client_test

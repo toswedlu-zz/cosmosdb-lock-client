@@ -1,4 +1,5 @@
 ﻿using Microsoft.Azure.Cosmos;
+using Microsoft.Azure.Cosmos.Locking;
 using Moq;
 using Newtonsoft.Json;
 using System.Threading.Tasks;

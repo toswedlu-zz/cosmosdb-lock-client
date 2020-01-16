@@ -1,4 +1,5 @@
 ﻿using Microsoft.Azure.Cosmos;
+using Microsoft.Azure.Cosmos.Locking;
 using Moq;
 using System;
 using System.Collections.Generic;
